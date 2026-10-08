@@ -950,3 +950,44 @@ test('content tree hides internal IDs and translates legacy chapter and topic la
   await expect(tree).not.toContainText(/MATH_|Function domain|QUADRATIC_INTERVAL_EXTREME|foundation/);
   await snapshot(page, { path: 'test-results/knowledge-chinese-admin.png', fullPage: true });
 });
+
+
+test("completed lesson keeps its matched teacher video cards on review", async ({ page }) => {
+  const f = await mock(page);
+  f.state.guide = guide;
+  await page.route("**/sessions/1/segments/recommend", route => route.fulfill({ json: {
+    code: 0, data: { segments: [{ segmentId: 1205, teacherName: "老师讲解",
+      title: "区间最值：比较顶点和端点", startTime: 594, endTime: 786,
+      durationSeconds: 192, platformUrl: "https://www.bilibili.com/video/BV13aC9BVEcR/?p=38&t=594",
+      goodFor: ["判断顶点是否在区间内"], style: [] }] },
+  } }));
+  await page.goto("/session/1/lesson");
+  await expect(page.locator(".teacher-card")).toContainText("区间最值");
+  f.state.status = "DONE";
+  f.state.teachingCompleted = true;
+  await page.reload();
+  await expect(page.locator(".teacher-card")).toContainText("区间最值");
+  await expect(page.getByText("暂时没有找到合适的老师片段。")).toHaveCount(0);
+});
+
+
+test("completed local lesson retrieves teacher videos again after reload", async ({ page }) => {
+  await mock(page);
+  await page.route("**/api/v1/segments?**", route => route.fulfill({ json: {
+    code: 0, data: [{ id: 1205, startTime: 594, endTime: 786,
+      video: { bvid: "BV13aC9BVEcR", title: "区间最值：比较顶点和端点", page: 38 },
+      goodFor: ["判断顶点是否在区间内"], style: [] }],
+  } }));
+  await page.goto("/");
+  await page.evaluate(async ({ guide, question }) => {
+    const path = "/src/lib/sessions/storage.ts";
+    const { saveLocalSession } = await import(/* @vite-ignore */ path);
+    await saveLocalSession({ id: 100, local: true, status: "DONE", teachingCompleted: true,
+      imageDataUrl: "", createdAt: new Date().toISOString(), guide,
+      analysis: { ...question, knowledgePointIds: JSON.parse(question.knowledgePointIds) } });
+  }, { guide, question: session().question });
+  await page.goto("/session/local:100/lesson");
+  await expect(page.locator(".teacher-card")).toContainText("区间最值");
+  await page.reload();
+  await expect(page.locator(".teacher-card")).toHaveAttribute("href", /p=38&t=594/);
+});

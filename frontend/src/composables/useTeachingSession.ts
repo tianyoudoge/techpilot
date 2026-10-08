@@ -282,10 +282,7 @@ export function useTeachingSession() {
   }
   async function loadSegments(current?: number) {
     segmentError.value = "";
-    if (detail.value?.status === "DONE") {
-      segments.value = [];
-      return;
-    }
+    // 完成后仍可回顾讲法；视频属于题目的学习材料，不随进度清空。
     try {
       let out: { segments: Segment[] };
       if (isLocalSession()) {
