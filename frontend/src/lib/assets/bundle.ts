@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 const bundleRequests = new Map<string, Promise<KnowledgeData>>();
-// 每次打开只校验一次版本；本次运行持续复用快照，强制刷新除外。
+// 每次打开只校验一次版本；本次运行持续复用快照。
 const snapshots = new Map<string, KnowledgeData>();
 function complete(c: AssetContent) {
   return (
@@ -51,10 +51,10 @@ async function fetchBundle(server: string): Promise<KnowledgeData> {
     clearTimeout(timer);
   }
 }
-export async function loadAssetBundle(force = false): Promise<KnowledgeData> {
+export async function loadAssetBundle(): Promise<KnowledgeData> {
   const server = serviceBase();
   const snapshot = snapshots.get(server);
-  if (force || !snapshot) {
+  if (!snapshot) {
     if (!bundleRequests.has(server))
       bundleRequests.set(
         server,
@@ -108,9 +108,6 @@ export async function loadAssetBundle(force = false): Promise<KnowledgeData> {
     }
   }
   return data;
-}
-export function invalidateAssets() {
-  snapshots.clear();
 }
 export function hasKnowledgeAsset(a: KnowledgeAssetRaw) {
   return complete(a);

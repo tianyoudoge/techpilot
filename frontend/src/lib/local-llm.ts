@@ -17,7 +17,6 @@ export {
 } from "./sessions/progress";
 export {
   loadAssetBundle as loadKnowledgeData,
-  invalidateAssets as invalidateKnowledgeCache,
 } from "./assets";
 export type {
   AnalysisOutput,

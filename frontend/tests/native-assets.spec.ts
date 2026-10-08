@@ -30,7 +30,7 @@ test('asset loading preserves string errors returned by native HTTP commands', a
   const error = await page.evaluate(async () => {
     const path = '/src/lib/assets.ts';
     const assets = await import(/* @vite-ignore */ path);
-    try { await assets.loadAssetBundle(true); return ''; }
+    try { await assets.loadAssetBundle(); return ''; }
     catch (error) { return (error as Error).message; }
   });
   expect(error).toContain('知识资产加载失败');
@@ -49,7 +49,7 @@ test('iOS asset bundle loads through WebView while model calls still use native 
   const results = await page.evaluate(async () => {
     const assetsPath = '/src/lib/assets.ts'; const platformPath = '/src/lib/platform.ts';
     const assets = await import(/* @vite-ignore */ assetsPath); const platform = await import(/* @vite-ignore */ platformPath);
-    const bundle = await assets.loadAssetBundle(true);
+    const bundle = await assets.loadAssetBundle();
     const upload = await (await platform.platformFetch(`${platform.ASSET_SERVICE_BASE}/api/v1/assets/contributions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
     let modelError = '';
     try { await platform.platformFetch('https://api.deepseek.com/chat/completions'); } catch (error) { modelError = String(error); }

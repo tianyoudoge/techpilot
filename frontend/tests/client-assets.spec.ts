@@ -47,7 +47,7 @@ async function clientCall(page: Page, task: string, payload: any = {}) {
     if (task === 'save') { await llm.saveLocalSession(payload); return true; }
     if (task === 'read') return llm.readLocalSession(payload.id);
     if (task === 'outbox') { await assets.flushAssetOutbox(true); return store.all('outbox'); }
-    if (task === 'bundle') return assets.loadAssetBundle(true);
+    if (task === 'bundle') return assets.loadAssetBundle();
     if (task === 'generate-records') return store.all('generated');
   }, { task, payload });
 }
@@ -92,6 +92,7 @@ test('published asset withdrawal prevents reuse of local submitted copy', async 
   const state = await fixture(page);
   await clientCall(page, 'exercise', { analysis }); await clientCall(page, 'outbox');
   state.bundle.withdrawnIds = ['accepted-asset']; state.bundle.version = 'bundle-v2';
+  await page.reload();
   const bundle = await clientCall(page, 'bundle'); expect(bundle.sharedAssets).toHaveLength(0);
 });
 test('exercise matching distinguishes difficulty, audience and excludes previous content', async ({ page }) => {
@@ -147,6 +148,7 @@ test('withdrawing server asset removes it from next snapshot', async ({ page }) 
   const state = await fixture(page, { existing: true });
   expect((await clientCall(page, 'bundle')).sharedAssets).toHaveLength(1);
   state.bundle.sharedAssets = []; state.bundle.version = 'bundle-v2'; state.bundle.withdrawnIds = [shared.id];
+  await page.reload();
   expect((await clientCall(page, 'bundle')).sharedAssets).toHaveLength(0);
 });
 

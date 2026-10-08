@@ -37,7 +37,8 @@ test('real light server: one client uploads, operator publishes, another client 
     }, point);
     expect(exercise.content).toBe(content); expect(calls).toBe(0);
     const revoked = await request.post(reviewURL, { headers: { Authorization: authorization }, data: { status: 'REVOKED', reason: '结束测试并核撤回传播' } }); expect(revoked.status()).toBe(200);
-    const next = await other.evaluate(async () => { const path = '/src/lib/assets.ts'; const m = await import(/* @vite-ignore */ path); return m.loadAssetBundle(true); });
+    await other.reload();
+    const next = await other.evaluate(async () => { const path = '/src/lib/assets.ts'; const m = await import(/* @vite-ignore */ path); return m.loadAssetBundle(); });
     expect(next.sharedAssets.some((a: any) => a.id === receipt.id)).toBe(false); expect(next.withdrawnIds).toContain(receipt.id);
   } finally {
     await request.post(reviewURL, { headers: { Authorization: authorization }, data: { status: 'REVOKED', reason: '清理隔离验收状态' } });
