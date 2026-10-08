@@ -49,6 +49,10 @@ export async function llmCall(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const body: Record<string, unknown> = { model, messages };
   if (maxTokens !== null) body.max_tokens = maxTokens;
+  // Official DeepSeek defaults to thinking mode. Our short JSON tasks need an
+  // actual answer within this budget, rather than spending it all on reasoning.
+  if (new URL(cfg.baseUrl).hostname === "api.deepseek.com")
+    body.thinking = { type: "disabled" };
   try {
     const res = await platformFetch(
       `${cfg.baseUrl.replace(/\/+$/, "")}/chat/completions`,

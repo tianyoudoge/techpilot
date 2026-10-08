@@ -57,3 +57,14 @@ test('iOS asset bundle loads through WebView while model calls still use native 
   });
   expect(results).toEqual({ version: 'ios-v1', id: 'ios-contribution', modelError: 'native:plugin:http|fetch' });
 });
+
+test('development proxy permits cached native asset preflight', async ({ request }) => {
+  for (const origin of ['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost']) {
+    const response = await request.fetch('/api/v1/assets/bundle', { method: 'OPTIONS', headers: {
+      Origin: origin, 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'if-none-match',
+    } });
+    expect(response.status()).toBe(204);
+    expect(response.headers()['access-control-allow-origin']).toBe(origin);
+    expect(response.headers()['access-control-allow-headers']).toContain('if-none-match');
+  }
+});
