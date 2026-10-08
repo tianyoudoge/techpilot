@@ -1,3 +1,12 @@
+// Keep plugin downloads on the same direct domestic mirror as dependencies.
+pluginManagement {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+    }
+}
+
 include ':app'
 
 apply from: 'tauri.settings.gradle'

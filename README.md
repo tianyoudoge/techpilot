@@ -126,7 +126,7 @@ npm run dev
 | H5 | 可在浏览器运行；需要连接资产服务 |
 | macOS / Windows / Linux | 已接入自动构建，可在 [Actions](https://github.com/tianyoudoge/techpilot/actions/workflows/clients.yml) 下载成功任务的产物 |
 | iOS | 已在 iPhone 完成讲题流程测试，当前通过开发签名安装 |
-| Android | 已有原生工程，完整安装包构建与真机验证仍待完成 |
+| Android | 已产出 ARM64 调试 APK，真机验证仍待完成 |
 
 当前原生包连接开发环境的局域网资产服务。构建产物仍需配置对应环境；各平台工具链和签名说明见[多端开发](docs/client-platform.md)。
 

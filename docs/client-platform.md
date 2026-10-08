@@ -23,3 +23,27 @@ H5 和 Tauri 复用 `frontend/src`。原生壳位于 `frontend/src-tauri`，macO
 更换测试地址时需一起修改 `src/lib/platform.ts`、`src-tauri/capabilities/default.json`、`src-tauri/Info.ios.plist` 及已有 iOS 工程中的 IP 例外。
 
 GitHub Actions 当前构建 H5 与桌面包；移动端签名构建尚未接入 CI。
+
+## 国内镜像、无代理构建（2026-10-08 验证）
+
+Android 的 Google Maven、Maven Central 与 Gradle 插件仓库已改为阿里云 HTTPS 镜像。项目根构建和 buildSrc 插件解析都已覆盖；不修改其他项目的全局仓库配置。
+
+在仓库根目录执行：
+
+```sh
+source frontend/scripts/mobile-env.sh
+npm run android:build:cn --prefix frontend -- --debug --target aarch64
+```
+
+`android:build:cn` 仅清理本次子进程的 HTTP/HTTPS/ALL_PROXY（含小写）及可能注入 Java 代理的环境变量，将 JVM 的 HTTP、HTTPS、SOCKS 代理主机设为空，并关闭常驻 Gradle daemon 的复用。它不会修改系统代理或用户全局配置。其他平台先配置本机的 JDK、SDK、NDK 和 Rust；mobile-env.sh 是当前 macOS 的环境示例。
+
+本次构建复用已下载的 Gradle 9.6.1 分发包；Gradle wrapper 的下载地址未修改。Maven 依赖使用阿里云的 google、central、gradle-plugin 镜像。
+
+已成功产出：
+
+- `frontend/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
+- `frontend/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab`
+
+文件名中的 universal 是 Gradle 的构建变体，本次实际仅包含 `arm64-v8a`。应用显示名为“讲会”，调试包标识为 `com.teachpilot.app.debug`，最低 API 24。APK 签名和 ZIP 完整性检查通过；本机没有连接安卓设备，因此尚未安装和验证真机流程。调试包包含调试符号，约 166 MiB。
+
+旧 TLS 错误本次没有重现；Java 对原 Maven 地址和阿里云镜像的直连探测都返回 200。能够确认的是国内镜像、无显式代理构建成功，尚不能据此断言旧故障的唯一根因。
