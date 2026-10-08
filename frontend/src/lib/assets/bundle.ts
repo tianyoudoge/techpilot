@@ -10,10 +10,8 @@ import type {
 } from "./types";
 
 const bundleRequests = new Map<string, Promise<KnowledgeData>>();
-const snapshots = new Map<
-  string,
-  { data: KnowledgeData; refreshedAt: number }
->();
+// 每次打开只校验一次版本；本次运行持续复用快照，强制刷新除外。
+const snapshots = new Map<string, KnowledgeData>();
 function complete(c: AssetContent) {
   return (
     !!c.definition?.trim() &&
@@ -56,13 +54,13 @@ async function fetchBundle(server: string): Promise<KnowledgeData> {
 export async function loadAssetBundle(force = false): Promise<KnowledgeData> {
   const server = serviceBase();
   const snapshot = snapshots.get(server);
-  if (force || !snapshot || Date.now() - snapshot.refreshedAt > 60000) {
+  if (force || !snapshot) {
     if (!bundleRequests.has(server))
       bundleRequests.set(
         server,
         fetchBundle(server)
           .then((data) => {
-            snapshots.set(server, { data, refreshedAt: Date.now() });
+            snapshots.set(server, data);
             return data;
           })
           .finally(() => {
@@ -74,7 +72,7 @@ export async function loadAssetBundle(force = false): Promise<KnowledgeData> {
   if (server !== serviceBase())
     throw new Error("资产服务已切换，请重新打开这份笔记");
   // 每次以服务端新快照为准，撤回的资产不能被本地旧副本重新补回来。
-  const data = structuredClone(snapshots.get(server)!.data);
+  const data = structuredClone(snapshots.get(server)!);
   const generated = await all<SharedAsset>("generated");
   const receipts = await all<Receipt>("receipts");
   for (const a of generated) {

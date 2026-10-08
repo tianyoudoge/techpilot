@@ -99,7 +99,7 @@ import {
 } from "../lib/model-config";
 import { modelProviders } from "../lib/model-providers";
 import { openExternal } from "../lib/platform";
-import { invalidateAssets, flushAssetOutbox } from "../lib/assets";
+import { flushAssetOutbox } from "../lib/assets";
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 const dialog = ref<HTMLElement>();
@@ -184,7 +184,6 @@ function handleSave() {
       modelVision: model.value.trim(),
       modelText: model.value.trim(),
     });
-    invalidateAssets();
     void flushAssetOutbox(true);
     close();
   } catch (e) {

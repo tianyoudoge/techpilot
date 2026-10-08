@@ -22,7 +22,12 @@ import {
   localConfig,
   legacyServerMode,
 } from "./lib/api";
-import { startAssetSync, assetSync, flushAssetOutbox } from "./lib/assets";
+import {
+  startAssetSync,
+  assetSync,
+  flushAssetOutbox,
+  loadAssetBundle,
+} from "./lib/assets";
 import { nativePlatform, openExternal } from "./lib/platform";
 // iPad WebViews can identify as Macintosh, so exclude touch devices.
 const nativeMac =
@@ -50,6 +55,8 @@ function externalLink(event: MouseEvent) {
 }
 onMounted(() => {
   stopSync = startAssetSync();
+  // 启动时校验版本，不阻塞首页；失败时由后续业务读取显示错误并允许重试。
+  void loadAssetBundle().catch(() => {});
   document.addEventListener("click", externalLink);
 });
 onUnmounted(() => {

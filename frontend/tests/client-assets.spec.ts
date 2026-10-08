@@ -149,3 +149,49 @@ test('withdrawing server asset removes it from next snapshot', async ({ page }) 
   state.bundle.sharedAssets = []; state.bundle.version = 'bundle-v2'; state.bundle.withdrawnIds = [shared.id];
   expect((await clientCall(page, 'bundle')).sharedAssets).toHaveLength(0);
 });
+
+
+test('startup checks the asset version once, reuses it past 60 seconds and revalidates on reopen', async ({ page, browserName }) => {
+  if (browserName === 'webkit') await page.addInitScript(() => {
+    // Playwright WebKit cannot route.fulfill a 304; reproduce its fetch response.
+    const fetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await fetch(...args);
+      return response.headers.get('x-test-not-modified') ? new Response(null, { status: 304 }) : response;
+    };
+  });
+  const headers: (string | undefined)[] = [];
+  let version = 'bundle-v1';
+  await fixture(page, { existing: true });
+  await page.evaluate(async () => {
+    const path = '/src/lib/assets.ts'; const { loadAssetBundle } = await import(/* @vite-ignore */ path);
+    await loadAssetBundle();
+  });
+  // Install before a fresh open so the startup request is observable.
+  await page.route('**/api/v1/assets/bundle', route => {
+    const tag = route.request().headers()['if-none-match'];
+    headers.push(tag);
+    if (tag === `"${version}"`) return route.fulfill(browserName === 'webkit' ? { status: 200, headers: { 'x-test-not-modified': '1' }, body: '' } : { status: 304 });
+    return route.fulfill({ json: { code: 0, data: { schemaVersion: 1, version, taxonomy: [point], assets: [point], sharedAssets: [shared], withdrawnIds: [] } } });
+  });
+  await page.reload();
+  await expect.poll(() => headers.length).toBe(1);
+  const readAssets = () => page.evaluate(async () => {
+    const path = '/src/lib/assets.ts'; const { loadAssetBundle } = await import(/* @vite-ignore */ path);
+    const results = await Promise.all([loadAssetBundle(), loadAssetBundle(), loadAssetBundle()]);
+    return results[0].version;
+  });
+  expect(await readAssets()).toBe('bundle-v1');
+  await page.evaluate(() => { const now = Date.now(); Date.now = () => now + 120000; });
+  expect(await readAssets()).toBe('bundle-v1');
+  expect(headers).toEqual(['"bundle-v1"']);
+  await page.reload();
+  expect(await readAssets()).toBe('bundle-v1');
+  expect(headers).toEqual(['"bundle-v1"', '"bundle-v1"']);
+  version = 'bundle-v2';
+  await page.reload();
+  expect(await readAssets()).toBe('bundle-v2');
+  expect(headers).toHaveLength(3);
+  expect(await readAssets()).toBe('bundle-v2');
+  expect(headers).toHaveLength(3);
+});
