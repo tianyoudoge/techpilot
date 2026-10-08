@@ -1,0 +1,60 @@
+name: Client builds
+on:
+  workflow_dispatch:
+  push:
+    paths: ['frontend/**', '.github/workflows/clients.yml']
+  pull_request:
+    paths: ['frontend/**', '.github/workflows/clients.yml']
+permissions:
+  contents: read
+jobs:
+  h5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-h5
+          path: frontend/dist
+          retention-days: 7
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            bundle: app
+          - os: windows-latest
+            bundle: nsis
+          - os: ubuntu-22.04
+            bundle: deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run desktop:build -- --bundles ${{ matrix.bundle }}
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-${{ matrix.os }}
+          path: frontend/src-tauri/target/release/bundle
+          retention-days: 7

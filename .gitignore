@@ -1,0 +1,30 @@
+# Local dependencies and build products
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+target/
+dist/
+build/
+test-results/
+playwright-report/
+.gradle/
+.cxx/
+.externalNativeBuild/
+.idea/
+.DS_Store
+.tauri/
+.tauri
+xcuserdata/
+Pods/
+# Local secrets and signing
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+local.properties
+key.properties
+keystore.properties

@@ -1,0 +1,50 @@
+// Read-only UI regression against the existing real session; does not generate new lessons.
+const { chromium, expect } = require('@playwright/test');
+const fs = require('node:fs');
+const path = require('node:path');
+(async () => {
+ const out = path.resolve(__dirname, process.env.UI_REVIEW_OUTPUT || '../../docs/reviews/knowledge-tree-ui'); fs.mkdirSync(out, { recursive: true });
+ const browser = await chromium.launch();
+ const page = await browser.newPage({ viewport: { width:390, height:844 }, reducedMotion:'reduce' });
+ const errors=[]; page.on('pageerror', e => errors.push(e.message));
+ try {
+  await page.goto('http://127.0.0.1:8080');
+  await page.getByRole('button',{name:'登录',exact:true}).click();
+  await page.locator('#phone').fill('13900001004');
+  await page.getByRole('button',{name:'获取验证码'}).click();
+  await page.locator('#code').fill('888888');
+  await page.getByRole('button',{name:'登录并继续',exact:true}).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.goto('http://127.0.0.1:8080/session/4/lesson');
+  await expect(page.locator('.knowledge-reader')).toBeVisible();
+  await page.evaluate(() => scrollTo(0,0));
+  await page.screenshot({path:path.join(out,'01-mobile-tree.png'),animations:'disabled'});
+  await page.locator('.knowledge-map-heading').click();
+  await page.screenshot({path:path.join(out,'01b-mobile-expanded-tree.png'),animations:'disabled'});
+  const tree = await page.locator('.knowledge-tree').innerText();
+  await page.locator('.knowledge-map-heading').click();
+  await page.locator('.knowledge-reader').scrollIntoViewIfNeeded();
+  if (await page.locator('.math-illustration').count()) await page.locator('.math-illustration').screenshot({path:path.join(out,'02b-mobile-svg.png')});
+  await page.locator('.knowledge-reader').scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.join(out,'02-mobile-concept.png'),animations:'disabled'});
+  await page.locator('.prerequisite-links').getByRole('button',{name:'对称轴',exact:true}).click();
+  await expect(page).toHaveURL(/knowledge=MATH_09_QUADRATIC_AXIS/);
+  await expect(page.locator('.knowledge-reader-heading h2')).toHaveText('对称轴');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({path:path.join(out,'03-mobile-prerequisite.png'),animations:'disabled'});
+  await page.reload();
+  await expect(page.locator('.knowledge-reader-heading h2')).toHaveText('对称轴');
+  await page.getByRole('button',{name:/返回本题/}).click();
+  await page.getByRole('button',{name:'本题解法',exact:true}).click();
+  await page.locator('.knowledge-reader').scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.join(out,'04-mobile-solution.png'),animations:'disabled'});
+  const metrics = await page.evaluate(() => ({ horizontalOverflow:document.documentElement.scrollWidth>innerWidth, displayMath:document.querySelectorAll('.math-block .katex').length, inlineMath:document.querySelectorAll('.math-inline .katex').length, fallback:document.querySelectorAll('.math-fallback').length, solutionHeadings:[...document.querySelectorAll('.problem-walkthrough h3')].map(n=>n.textContent) }));
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('http://127.0.0.1:8080/session/4/lesson');
+  await expect(page.locator('.knowledge-reader')).toBeVisible();
+  await page.screenshot({path:path.join(out,'05-desktop-tree.png'),animations:'disabled'});
+  expect(metrics.horizontalOverflow).toBe(false); expect(metrics.fallback).toBe(0); expect(errors).toEqual([]);
+  fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({passed:true, sessionId:4, tree, metrics, errors},null,2));
+  console.log(JSON.stringify({passed:true,metrics,errors}));
+ } finally { await browser.close(); }
+})().catch(e=>{ console.error(e.message); process.exitCode=1; });

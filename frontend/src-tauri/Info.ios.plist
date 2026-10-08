@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCameraUsageDescription</key>
+	<string>拍摄题目和孩子的作答过程，帮助准备讲解。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>选择题目照片和孩子的作答照片。</string>
+	<key>CFBundleDisplayName</key>
+	<string>讲会</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>连接同一局域网中的讲会资产服务，加载题目并同步可复用讲解。</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.0.112</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
