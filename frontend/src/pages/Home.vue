@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
+import {
+  ref,
+  watch,
+  onActivated,
+  onDeactivated,
+  onUnmounted,
+  nextTick,
+} from "vue";
 import { useRouter } from "vue-router";
 import {
   Camera,
@@ -61,30 +68,49 @@ function openAlbum() {
   choosePhoto(album.value);
 }
 
+// 首页缓存保留裁剪草稿；离开时取消识题，过期响应不能抢走当前页面。
+let active = true;
+let analysisRequest = 0;
+function deactivate() {
+  active = false;
+  ++analysisRequest;
+  if (busy.value) cancelModelRequest();
+  busy.value = false;
+  clearInterval(interval);
+}
 async function analyze(file: File) {
   if (!requireModel()) return;
+  const request = ++analysisRequest;
+  const current = () => active && request === analysisRequest;
   busy.value = true;
   error.value = "";
   elapsed.value = 0;
-  interval = setInterval(() => elapsed.value++, 1000);
+  const timer = setInterval(() => elapsed.value++, 1000);
+  interval = timer;
   try {
     const result = await analyzeQuestion(file);
+    if (!current()) return;
+    const imageDataUrl = await photoDataUrl(file);
+    if (!current()) return;
     // 先保存本地笔记，再进入讲题页；刷新或下次打开时可恢复照片与进度。
     const session: LocalSessionState = {
       id: Date.now(), // 本地笔记 ID，不作为服务端会话 ID 使用
       local: true,
       analysis: result,
-      imageDataUrl: await photoDataUrl(file),
+      imageDataUrl,
       createdAt: new Date().toISOString(),
     };
     await saveLocalSession(session);
+    if (!current()) return;
+    selected.value = undefined;
+    busy.value = false;
     localStorage.setItem("jianghui-last-session", `local:${session.id}`);
     await router.push(`/session/local:${session.id}/insight`);
   } catch (e) {
-    error.value = (e as Error).message;
+    if (current()) error.value = (e as Error).message;
   } finally {
-    busy.value = false;
-    clearInterval(interval);
+    if (current()) busy.value = false;
+    clearInterval(timer);
   }
 }
 
@@ -108,8 +134,12 @@ async function loadHistory() {
   }
 }
 watch(token, loadHistory);
-onMounted(loadHistory);
-onUnmounted(() => clearInterval(interval));
+onActivated(() => {
+  active = true;
+  loadHistory();
+});
+onDeactivated(deactivate);
+onUnmounted(deactivate);
 function resume(s: SessionDetail & { local?: boolean }) {
   router.push(
     `/session/${s.local ? "local:" : ""}${s.id}/${s.status === "DONE" ? "result" : s.teachingCompleted ? "exercise" : s.guide ? "lesson" : "insight"}`,

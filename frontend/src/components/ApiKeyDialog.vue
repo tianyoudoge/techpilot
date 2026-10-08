@@ -1,7 +1,24 @@
 <template>
   <Teleport to="body">
-    <div v-if="open" class="key-dialog-backdrop" @click.self="close">
-      <div class="key-dialog" role="dialog" aria-labelledby="key-dialog-title">
+    <div
+      v-if="open"
+      class="key-dialog-backdrop"
+      :style="{
+        top: `${viewportTop}px`,
+        height: `${viewportHeight}px`,
+        bottom: 'auto',
+      }"
+      @click.self="close"
+    >
+      <div
+        ref="dialog"
+        class="key-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="key-dialog-title"
+        tabindex="-1"
+        @keydown="onKeydown"
+      >
         <h2 id="key-dialog-title" class="key-dialog-title">配置模型</h2>
         <div class="provider-tabs" role="tablist" aria-label="模型供应商">
           <button
@@ -74,6 +91,7 @@
 
 <script setup lang="ts">
 import { reactive, computed, watch, ref } from "vue";
+import { useAppDialog } from "../composables/useAppDialog";
 import {
   localConfig,
   saveLocalConfig,
@@ -84,6 +102,12 @@ import { openExternal } from "../lib/platform";
 import { invalidateAssets, flushAssetOutbox } from "../lib/assets";
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
+const dialog = ref<HTMLElement>();
+const { viewportHeight, viewportTop, onKeydown } = useAppDialog(
+  () => props.open,
+  dialog,
+  close,
+);
 const providerId = ref("deepseek");
 const provider = computed(() =>
   modelProviders.find((p) => p.id === providerId.value),
@@ -199,7 +223,7 @@ function handleClear() {
   padding: 24px 20px 32px;
   width: 100%;
   max-width: 480px;
-  max-height: 90dvh;
+  max-height: calc(100% - 12px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

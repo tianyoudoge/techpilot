@@ -79,6 +79,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { VideoSegment } from '../lib/types';
+import { openExternal } from '../lib/platform';
+import { tell } from '../lib/ui-state';
 
 const props = defineProps<{
   segment: VideoSegment;
@@ -112,14 +114,6 @@ const webUrl = computed(() => {
   return `https://www.bilibili.com/video/${bvid}?p=${page}&t=${startTime}`;
 });
 
-// 构造 APP deep link
-const appUrl = computed(() => {
-  const { bvid, page = 1 } = props.segment.video;
-  const { startTime } = props.segment;
-  const startPosition = startTime * 1000; // 转换为毫秒
-  return `bilibili://video/${bvid}?page=${page}&start_position=${startPosition}`;
-});
-
 // 格式化时间
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -135,21 +129,13 @@ function replaySegment() {
   }
 }
 
-// 在 Bilibili 中打开（移动端）
-function openInBilibili() {
-  // 尝试打开 APP
-  window.location.href = appUrl.value;
-
-  // 2秒后降级到网页
-  setTimeout(() => {
-    window.location.href = webUrl.value;
-  }, 2000);
+// Use a universal HTTPS link: the OS can open the supported app or the browser,
+// while the current lesson and application WebView remain intact.
+async function openInBilibili() {
+  try { await openExternal(webUrl.value); }
+  catch { tell('暂时无法打开视频，请稍后再试'); }
 }
-
-// 在新窗口打开
-function openInNewTab() {
-  window.open(webUrl.value, '_blank');
-}
+const openInNewTab = openInBilibili;
 </script>
 
 <style scoped>

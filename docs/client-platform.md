@@ -47,3 +47,7 @@ npm run android:build:cn --prefix frontend -- --debug --target aarch64
 文件名中的 universal 是 Gradle 的构建变体，本次实际仅包含 `arm64-v8a`。应用显示名为“讲会”，调试包标识为 `com.teachpilot.app.debug`，最低 API 24。APK 签名和 ZIP 完整性检查通过；本机没有连接安卓设备，因此尚未安装和验证真机流程。调试包包含调试符号，约 166 MiB。
 
 旧 TLS 错误本次没有重现；Java 对原 Maven 地址和阿里云镜像的直连探测都返回 200。能够确认的是国内镜像、无显式代理构建成功，尚不能据此断言旧故障的唯一根因。
+
+## 应用形态
+
+H5 使用 history 路由，Tauri 使用 hash 路由。所有业务页面共用应用外壳；H5 部署需配置子路径回退到 index.html。内部管理页默认关闭，仅维护环境设置 `VITE_INTERNAL_TOOLS=1` 后启用。验证标准、状态保留和真机边界见 [应用形态验收](应用形态验收.md)。

@@ -931,6 +931,7 @@ test('knowledge labels stay Chinese for legacy English names and missing assets'
 });
 
 test('content tree hides internal IDs and translates legacy chapter and topic labels', async ({ page }) => {
+  test.skip(process.env.VITE_INTERNAL_TOOLS !== '1', '内部目录工具仅在显式开启时验收');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route('**/api/v1/taxonomy', route => route.fulfill({ json: { code: 0, data: [
     { id: 'MATH_FOUNDATION_FUNCTION', name: 'Function domain', chapterId: 'foundation', grade: 9 },

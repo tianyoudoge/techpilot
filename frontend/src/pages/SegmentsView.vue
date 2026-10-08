@@ -50,13 +50,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { chapterNames } from '../lib/api';
 import { getVideoSegments, preloadDatabase } from '../lib/api-client';
 import type { VideoSegment } from '../lib/types';
 import SegmentCard from '../components/SegmentCard.vue';
 import VideoPlayer from '../components/VideoPlayer.vue';
 
+let previousOverflow = '';
 const selectedChapter = ref('');
 const segments = ref<VideoSegment[]>([]);
 const loading = ref(false);
@@ -79,13 +80,16 @@ async function loadSegments() {
 
 function openPlayer(segment: VideoSegment) {
   currentSegment.value = segment;
+  previousOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden'; // 禁止背景滚动
 }
 
 function closePlayer() {
   currentSegment.value = null;
-  document.body.style.overflow = ''; // 恢复滚动
+  document.body.style.overflow = previousOverflow; // 恢复滚动
 }
+
+onUnmounted(() => { if (currentSegment.value) document.body.style.overflow = previousOverflow; });
 
 onMounted(() => {
   loadSegments();

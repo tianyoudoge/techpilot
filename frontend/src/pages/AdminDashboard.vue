@@ -165,6 +165,8 @@
 </template>
 
 <script setup lang="ts">
+import { openExternal } from '../lib/platform';
+import { tell } from '../lib/ui-state';
 import { ref, computed, onMounted } from 'vue';
 import { getVideoSegments, getSegmentStats, getTaxonomy } from '../lib/api-client';
 import { chapterNames } from '../lib/api';
@@ -352,7 +354,7 @@ function formatDuration(seconds: number): string {
 // 播放片段
 function playSegment(segment: VideoSegment) {
   const url = `https://www.bilibili.com/video/${segment.video.bvid}?p=${segment.video.page}&t=${segment.startTime}`;
-  window.open(url, '_blank');
+  void openExternal(url).catch(() => tell('暂时无法打开视频，请稍后再试'));
 }
 
 // 查看详情
@@ -367,7 +369,7 @@ onMounted(() => {
 
 <style scoped>
 .admin-dashboard {
-  height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
